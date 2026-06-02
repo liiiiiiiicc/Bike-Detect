@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>任意地点共享单车监测</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+
+        .header {
+            height: 70px;
+            background: #111827;
+            display: flex;
+            align-items: center;
+            padding-left: 30px;
+            font-size: 26px;
+            font-weight: bold;
+            border-bottom: 2px solid #2563eb;
+        }
+
+        .main {
+            display: flex;
+            padding: 24px;
+            gap: 24px;
+        }
+
+        .video-area {
+            flex: 3;
+            background: #020617;
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .video-title {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: #93c5fd;
+        }
+
+        .video-area img {
+            width: 100%;
+            border-radius: 10px;
+            border: 2px solid #1d4ed8;
+            background: black;
+        }
+
+        .panel {
+            flex: 1;
+            background: #111827;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .panel h2 {
+            margin-top: 0;
+            font-size: 20px;
+            color: #60a5fa;
+            border-bottom: 1px solid #374151;
+            padding-bottom: 10px;
+        }
+
+        .card {
+            background: #1f2937;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .label {
+            font-size: 14px;
+            color: #9ca3af;
+        }
+
+        .value {
+            margin-top: 6px;
+            font-size: 30px;
+            font-weight: bold;
+            color: #22c55e;
+        }
+
+        .small-value {
+            margin-top: 6px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #e5e7eb;
+        }
+
+        .status-normal {
+            color: #22c55e;
+        }
+
+        .status-warning {
+            color: #f59e0b;
+        }
+
+        .status-danger {
+            color: #ef4444;
+        }
+
+        input, select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+            background: #020617;
+            color: #e5e7eb;
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .message {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .footer {
+            padding: 0 24px 20px 24px;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        任意地点共享单车监测
+
+        <span style="font-size:16px;margin-left:auto;margin-right:30px;">
+            当前用户：{{ username }}（{{ role }}）
+            | <a href="/campus_flow" style="color:#93c5fd;">校园流动检测</a>
+            {% if role == 'admin' %}
+            | <a href="/admin/records" style="color:#93c5fd;">数据管理</a>
+            {% endif %}
+            | <a href="/logout" style="color:#fca5a5;">退出登录</a>
+        </span>
+    </div>
+
+    <div class="main">
+        <div class="video-area">
+            <div class="video-title">实时检测画面</div>
+            <img src="/video_feed" alt="实时检测画面">
+        </div>
+
+        <div class="panel">
+            <h2>区域检测结果</h2>
+
+            <div class="card">
+                <div class="label">区域内共享单车数</div>
+                <div class="value" id="sharedBikeCount">0</div>
+            </div>
+
+            <div class="card">
+                <div class="label">区域内其他载具数</div>
+                <div class="value" id="otherVehicleCount">0</div>
+            </div>
+
+            <div class="card">
+                <div class="label">区域内载具总数</div>
+                <div class="value" id="totalVehicleCount">0</div>
+            </div>
+
+            <div class="card">
+                <div class="label">拥挤程度</div>
+                <div class="value" id="congestion">不拥堵</div>
+            </div>
+
+            <h2>场景记录</h2>
+
+            <div class="card">
+                <div class="label">当前场景</div>
+                <input type="text" id="sceneInput" placeholder="例如：教学楼门口 / 宿舍楼下 / 食堂入口">
+
+                <button onclick="saveRecord()">保存当前记录</button>
+
+                <button id="autoSaveBtn" onclick="startAutoSave()" style="background:#16a34a;">
+                    开始自动记录（每15秒）
+                </button>
+
+                <button id="stopAutoSaveBtn" onclick="stopAutoSave()" style="background:#dc2626;">
+                    停止记录
+                </button>
+
+                <div class="message" id="saveMessage"></div>
+                <div class="message" id="autoSaveStatus"></div>
+            </div>
+
+            <h2>车流累计统计</h2>
+
+            <div class="card">
+                <div class="label">启动后经过总车流量</div>
+                <div class="value" id="trafficCounterTotal">0</div>
+            </div>
+
+            <div class="card">
+                <div class="label">经过共享单车数</div>
+                <div class="small-value" id="trafficCounterShared">0</div>
+            </div>
+
+            <div class="card">
+                <div class="label">经过其他车辆数</div>
+                <div class="small-value" id="trafficCounterOther">0</div>
+            </div>
+
+            <div class="card">
+                <div class="label">统计状态</div>
+                <div class="small-value" id="trafficCounterState">未启动</div>
+
+                <button id="startTrafficCounterBtn" onclick="startTrafficCounter()" style="background:#16a34a;">
+                    开始统计经过车流
+                </button>
+
+                <button onclick="stopTrafficCounter()" style="background:#dc2626;">
+                    停止统计
+                </button>
+
+                <button onclick="resetTrafficCounter()" style="background:#475569;">
+                    清零统计
+                </button>
+
+                <div class="message" id="trafficCounterMessage"></div>
+            </div>
+
+            <h2>系统状态</h2>
+
+            <div class="card">
+                <div class="label">实时 FPS</div>
+                <div class="small-value" id="fps">0</div>
+            </div>
+
+            <div class="card">
+                <div class="label">推理设备</div>
+                <div class="small-value" id="device">--</div>
+            </div>
+
+            <div class="card">
+                <div class="label">当前模型权重</div>
+                <div class="small-value" id="modelName">--</div>
+                <select id="modelSelect"></select>
+                <button onclick="switchModel()" style="background:#0891b2;">
+                    切换模型
+                </button>
+                <div class="message" id="modelMessage"></div>
+            </div>
+
+            <div class="card">
+                <div class="label">目标跟踪器</div>
+                <div class="small-value" id="tracker">--</div>
+            </div>
+
+            <div class="card">
+                <div class="label">当前活动轨迹数</div>
+                <div class="small-value" id="activeTrackCount">0</div>
+            </div>
+
+            <div class="card">
+                <div class="label">摄像头状态</div>
+                <div class="small-value status-normal" id="cameraStatus">正常</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        拥挤程度规则：4辆以下为不拥堵，4辆及以上为拥堵，7辆及以上为严重拥堵。
+    </div>
+
+    <script>
+        let autoSaveTimer = null;
+        let autoSaveCount = 0;
+        let modelOptionsLoaded = false;
+
+        function renderModelOptions(payload) {
+            const select = document.getElementById("modelSelect");
+            const active = payload.active_model || {};
+            const models = payload.models || {};
+
+            select.innerHTML = Object.keys(models).map(key => {
+                const model = models[key];
+                const selected = key === active.key ? "selected" : "";
+                return `<option value="${key}" ${selected}>${model.name}</option>`;
+            }).join("");
+
+            document.getElementById("modelName").innerText = active.name || "--";
+            document.getElementById("modelMessage").innerText = active.description || "";
+            document.getElementById("modelMessage").style.color = "#9ca3af";
+            modelOptionsLoaded = true;
+        }
+
+        function loadModelOptions() {
+            fetch("/model_options")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderModelOptions(data);
+                    }
+                });
+        }
+
+        function switchModel() {
+            const modelKey = document.getElementById("modelSelect").value;
+            const message = document.getElementById("modelMessage");
+            message.innerText = "正在切换模型，请稍候...";
+            message.style.color = "#60a5fa";
+
+            fetch("/switch_model", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model_key: modelKey })
+            })
+            .then(response => response.json())
+            .then(data => {
+                renderModelOptions(data);
+                message.innerText = data.message;
+                message.style.color = data.success ? "#22c55e" : "#ef4444";
+            })
+            .catch(error => {
+                message.innerText = "模型切换请求失败，请检查后端服务。";
+                message.style.color = "#ef4444";
+            });
+        }
+
+        function updateInfo() {
+            fetch("/detect_info")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("sharedBikeCount").innerText = data.shared_bike_count;
+                    document.getElementById("otherVehicleCount").innerText = data.other_vehicle_count;
+                    document.getElementById("totalVehicleCount").innerText = data.total_vehicle_count;
+                    document.getElementById("congestion").innerText = data.congestion;
+
+                    document.getElementById("fps").innerText = data.fps;
+                    document.getElementById("device").innerText = data.device;
+                    document.getElementById("modelName").innerText = data.model_name || "--";
+                    document.getElementById("tracker").innerText = data.tracker || "--";
+                    document.getElementById("activeTrackCount").innerText = data.active_track_count || 0;
+                    document.getElementById("trafficCounterTotal").innerText = data.traffic_counter_total_vehicle_count || 0;
+                    document.getElementById("trafficCounterShared").innerText = data.traffic_counter_shared_bike_count || 0;
+                    document.getElementById("trafficCounterOther").innerText = data.traffic_counter_other_vehicle_count || 0;
+                    if (data.traffic_counter_running) {
+                        document.getElementById("trafficCounterState").innerText = "统计中，已运行 " + (data.traffic_counter_duration_seconds || 0) + " 秒";
+                    } else if (data.traffic_counter_started_at) {
+                        document.getElementById("trafficCounterState").innerText = "已停止";
+                    } else {
+                        document.getElementById("trafficCounterState").innerText = "未启动";
+                    }
+                    document.getElementById("cameraStatus").innerText = data.camera_status;
+
+                    const congestion = document.getElementById("congestion");
+                    congestion.classList.remove("status-normal", "status-warning", "status-danger");
+
+                    if (data.congestion === "严重拥堵") {
+                        congestion.classList.add("status-danger");
+                    } else if (data.congestion === "拥堵") {
+                        congestion.classList.add("status-warning");
+                    } else {
+                        congestion.classList.add("status-normal");
+                    }
+                });
+        }
+
+        function saveRecord(callback = null) {
+            const scene = document.getElementById("sceneInput").value.trim();
+            const saveMessage = document.getElementById("saveMessage");
+
+            if (scene === "") {
+                saveMessage.innerText = "请先填写当前场景";
+                saveMessage.style.color = "#f59e0b";
+
+                if (callback) callback(false);
+                return;
+            }
+
+            fetch("/save_record", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    scene: scene
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    saveMessage.innerText = "保存成功：" + data.record.record_time;
+                    saveMessage.style.color = "#22c55e";
+
+                    if (callback) callback(true, data);
+                } else {
+                    saveMessage.innerText = data.message;
+                    saveMessage.style.color = "#ef4444";
+
+                    if (callback) callback(false, data);
+                }
+            })
+            .catch(error => {
+                saveMessage.innerText = "请求失败，请检查后端服务";
+                saveMessage.style.color = "#ef4444";
+
+                if (callback) callback(false);
+            });
+        }
+
+        function updateTrafficCounterMessage(data) {
+            const message = document.getElementById("trafficCounterMessage");
+            if (!message) return;
+
+            message.innerText = data.message || "";
+            message.style.color = data.success ? "#22c55e" : "#ef4444";
+
+            if (data.counter) {
+                document.getElementById("trafficCounterTotal").innerText = data.counter.total_vehicle_count || 0;
+                document.getElementById("trafficCounterShared").innerText = data.counter.shared_bike_count || 0;
+                document.getElementById("trafficCounterOther").innerText = data.counter.other_vehicle_count || 0;
+                if (data.counter.running) {
+                    document.getElementById("trafficCounterState").innerText = "统计中，已运行 " + (data.counter.duration_seconds || 0) + " 秒";
+                } else if (data.counter.started_at) {
+                    document.getElementById("trafficCounterState").innerText = "已停止";
+                } else {
+                    document.getElementById("trafficCounterState").innerText = "未启动";
+                }
+            }
+        }
+
+        function postTrafficCounter(action) {
+            fetch("/traffic_counter/" + action, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => response.json())
+            .then(data => updateTrafficCounterMessage(data))
+            .catch(error => {
+                updateTrafficCounterMessage({
+                    success: false,
+                    message: "请求失败，请检查后端服务"
+                });
+            });
+        }
+
+        function startTrafficCounter() {
+            postTrafficCounter("start");
+        }
+
+        function stopTrafficCounter() {
+            postTrafficCounter("stop");
+        }
+
+        function resetTrafficCounter() {
+            postTrafficCounter("reset");
+        }
+
+        function startAutoSave() {
+            const scene = document.getElementById("sceneInput").value.trim();
+            const autoSaveStatus = document.getElementById("autoSaveStatus");
+
+            if (scene === "") {
+                autoSaveStatus.innerText = "请先填写当前场景，再开始自动记录";
+                autoSaveStatus.style.color = "#f59e0b";
+                return;
+            }
+
+            if (autoSaveTimer !== null) {
+                autoSaveStatus.innerText = "自动记录已经在运行中";
+                autoSaveStatus.style.color = "#60a5fa";
+                return;
+            }
+
+            autoSaveCount = 0;
+
+            saveRecord(function(success) {
+                if (success) {
+                    autoSaveCount += 1;
+                    autoSaveStatus.innerText = "自动记录中：已保存 " + autoSaveCount + " 条，每15秒保存一次";
+                    autoSaveStatus.style.color = "#22c55e";
+                }
+            });
+
+            autoSaveTimer = setInterval(function() {
+                saveRecord(function(success) {
+                    if (success) {
+                        autoSaveCount += 1;
+                        autoSaveStatus.innerText = "自动记录中：已保存 " + autoSaveCount + " 条，每15秒保存一次";
+                        autoSaveStatus.style.color = "#22c55e";
+                    } else {
+                        autoSaveStatus.innerText = "自动记录失败，请检查场景输入或数据库连接";
+                        autoSaveStatus.style.color = "#ef4444";
+                    }
+                });
+            }, 15000);
+
+            document.getElementById("autoSaveBtn").disabled = true;
+            document.getElementById("autoSaveBtn").innerText = "自动记录中...";
+        }
+
+        function stopAutoSave() {
+            const autoSaveStatus = document.getElementById("autoSaveStatus");
+
+            if (autoSaveTimer !== null) {
+                clearInterval(autoSaveTimer);
+                autoSaveTimer = null;
+
+                autoSaveStatus.innerText = "自动记录已停止，共保存 " + autoSaveCount + " 条";
+                autoSaveStatus.style.color = "#f59e0b";
+
+                document.getElementById("autoSaveBtn").disabled = false;
+                document.getElementById("autoSaveBtn").innerText = "开始自动记录（每15秒）";
+            } else {
+                autoSaveStatus.innerText = "当前没有正在运行的自动记录";
+                autoSaveStatus.style.color = "#9ca3af";
+            }
+        }
+
+        loadModelOptions();
+        setInterval(updateInfo, 500);
+        updateInfo();
+    </script>
+</body>
+</html>

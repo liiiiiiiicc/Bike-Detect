@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>用户注册</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .box {
+            width: 380px;
+            background: #111827;
+            padding: 32px;
+            border-radius: 14px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            text-align: center;
+            color: #60a5fa;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            margin-top: 14px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+            background: #020617;
+            color: white;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 18px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #16a34a;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        a {
+            color: #93c5fd;
+            text-decoration: none;
+        }
+
+        .error {
+            margin-top: 12px;
+            color: #ef4444;
+            text-align: center;
+        }
+
+        .bottom {
+            margin-top: 18px;
+            text-align: center;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>用户注册</h1>
+
+        <form method="post" action="/register">
+            <input type="text" name="username" placeholder="用户名">
+            <input type="password" name="password" placeholder="密码">
+            <input type="password" name="confirm_password" placeholder="确认密码">
+            <button type="submit">注册</button>
+        </form>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <div class="bottom">
+            已有账号？<a href="/login">返回登录</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>校园流动检测与调度建模</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+
+        .header {
+            min-height: 70px;
+            background: #111827;
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            font-size: 24px;
+            font-weight: bold;
+            border-bottom: 2px solid #2563eb;
+        }
+
+        .nav {
+            margin-left: auto;
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        .nav a {
+            color: #93c5fd;
+            margin-left: 18px;
+            text-decoration: none;
+        }
+
+        .container {
+            padding: 24px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .camera-card,
+        .section {
+            background: #111827;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.35);
+            border: 1px solid #1f2937;
+        }
+
+        .camera-card h2,
+        .section h2 {
+            margin-top: 0;
+            color: #60a5fa;
+        }
+
+        .camera-card img {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #1d4ed8;
+            background: black;
+        }
+
+        .info {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .item {
+            background: #1f2937;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 68px;
+        }
+
+        .label {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        .value {
+            margin-top: 6px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #22c55e;
+        }
+
+        .normal { color: #22c55e; }
+        .warning { color: #f59e0b; }
+        .danger { color: #ef4444; }
+
+        .section {
+            margin: 0 24px 24px 24px;
+        }
+
+        .strategy-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #facc15;
+        }
+
+        button,
+        select {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        button {
+            cursor: pointer;
+            background: #2563eb;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        select {
+            background: #1f2937;
+            border: 1px solid #374151;
+            margin-right: 12px;
+        }
+
+        .model-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+            gap: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #334155;
+            text-align: center;
+        }
+
+        th {
+            background: #1f2937;
+            color: #93c5fd;
+        }
+
+        .route-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .route-title {
+            color: #22c55e;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .message {
+            margin-top: 12px;
+            color: #9ca3af;
+        }
+
+        @media (max-width: 1180px) {
+            .container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .model-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 16px 20px;
+                gap: 10px;
+            }
+
+            .nav {
+                margin-left: 0;
+                line-height: 1.8;
+            }
+
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        校园流动检测与调度建模
+
+        <div class="nav">
+            当前用户：{{ username }}（{{ role }}）
+            <a href="/">任意地点监测</a>
+            {% if role == 'admin' %}
+            <a href="/admin/records">数据管理</a>
+            {% endif %}
+            <a href="/logout">退出登录</a>
+        </div>
+    </div>
+
+    <div class="container" id="cameraContainer"></div>
+
+    <div class="section">
+        <h2>检测模型切换</h2>
+        <div class="model-controls">
+            <span>当前模型</span>
+            <select id="modelSelect"></select>
+            <button onclick="switchModel()" style="background:#0891b2;">切换模型权重</button>
+        </div>
+        <div id="weightModelMessage" class="message">正在读取模型配置。</div>
+    </div>
+
+    <div class="section">
+        <h2>调度策略建议</h2>
+        <div class="strategy-text" id="strategyText">等待四个站点检测数据。</div>
+    </div>
+
+    <div class="section">
+        <h2>共享单车调度建模与求解</h2>
+        <div class="model-controls">
+            <span>需求时间段</span>
+            <select id="timePeriod">
+                <option value="morning">早高峰</option>
+                <option value="noon">午间</option>
+                <option value="evening" selected>晚高峰</option>
+            </select>
+            <button onclick="solveDispatchModel()">使用真实流动检测记录生成调度方案</button>
+        </div>
+
+        <div id="modelMessage" class="message">求解会读取四个站点最近一次保存的流动检测记录，使用共享单车数量作为当前库存。</div>
+        <div id="modelResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>数据保存</h2>
+
+        <button onclick="startFlowAutoSave()" style="background:#16a34a;">
+            开始保存数据（每 15 秒）
+        </button>
+
+        <button onclick="stopFlowAutoSave()" style="background:#dc2626; margin-left:12px;">
+            停止保存数据
+        </button>
+
+        <div id="flowSaveStatus" style="margin-top:12px; color:#9ca3af;">
+            当前未开始自动保存。
+        </div>
+    </div>
+
+    <script>
+        const stations = [
+            { key: "A", name: "至臻楼" },
+            { key: "B", name: "友园15号楼" },
+            { key: "C", name: "食堂" },
+            { key: "D", name: "安楼" }
+        ];
+
+        let flowAutoSaveTimer = null;
+        let flowAutoSaveCount = 0;
+
+        function renderModelOptions(payload) {
+            const select = document.getElementById("modelSelect");
+            const active = payload.active_model || {};
+            const models = payload.models || {};
+
+            select.innerHTML = Object.keys(models).map(key => {
+                const model = models[key];
+                const selected = key === active.key ? "selected" : "";
+                return `<option value="${key}" ${selected}>${model.name}</option>`;
+            }).join("");
+
+            const message = document.getElementById("weightModelMessage");
+            message.innerText = active.description || "";
+            message.style.color = "#9ca3af";
+        }
+
+        function loadModelOptions() {
+            fetch("/model_options")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderModelOptions(data);
+                    }
+                });
+        }
+
+        function switchModel() {
+            const modelKey = document.getElementById("modelSelect").value;
+            const message = document.getElementById("weightModelMessage");
+            message.innerText = "正在切换模型，请稍候...";
+            message.style.color = "#60a5fa";
+
+            fetch("/switch_model", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model_key: modelKey })
+            })
+            .then(response => response.json())
+            .then(data => {
+                renderModelOptions(data);
+                message.innerText = data.message;
+                message.style.color = data.success ? "#22c55e" : "#ef4444";
+            })
+            .catch(error => {
+                message.innerText = "模型切换请求失败，请检查后端服务。";
+                message.style.color = "#ef4444";
+            });
+        }
+
+        function buildCameraCards() {
+            const container = document.getElementById("cameraContainer");
+            container.innerHTML = stations.map(station => `
+                <div class="camera-card">
+                    <h2>${station.key}：${station.name}</h2>
+                    <img src="/campus_video_feed/${station.key}">
+                    <div class="info">
+                        <div class="item">
+                            <div class="label">共享单车数</div>
+                            <div class="value" id="${station.key}_shared">0</div>
+                        </div>
+                        <div class="item">
+                            <div class="label">其他载具数</div>
+                            <div class="value" id="${station.key}_other">0</div>
+                        </div>
+                        <div class="item">
+                            <div class="label">总载具数</div>
+                            <div class="value" id="${station.key}_total">0</div>
+                        </div>
+                        <div class="item">
+                            <div class="label">拥堵程度</div>
+                            <div class="value normal" id="${station.key}_congestion">不拥堵</div>
+                        </div>
+                        <div class="item">
+                            <div class="label">活动轨迹数</div>
+                            <div class="value" id="${station.key}_tracks">0</div>
+                        </div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function setCongestionColor(id, value) {
+            const el = document.getElementById(id);
+            el.classList.remove("normal", "warning", "danger");
+
+            if (value === "严重拥堵") {
+                el.classList.add("danger");
+            } else if (value === "拥堵") {
+                el.classList.add("warning");
+            } else {
+                el.classList.add("normal");
+            }
+        }
+
+        function updateCampusInfo() {
+            fetch("/campus_info")
+                .then(response => response.json())
+                .then(data => {
+                    let maxStation = null;
+                    let minStation = null;
+                    let maxCount = -1;
+                    let minCount = Number.MAX_SAFE_INTEGER;
+
+                    stations.forEach(station => {
+                        const info = data[station.key] || {};
+
+                        document.getElementById(station.key + "_shared").innerText = info.shared_bike_count || 0;
+                        document.getElementById(station.key + "_other").innerText = info.other_vehicle_count || 0;
+                        document.getElementById(station.key + "_total").innerText = info.total_vehicle_count || 0;
+                        document.getElementById(station.key + "_congestion").innerText = info.congestion || "不拥堵";
+                        document.getElementById(station.key + "_tracks").innerText = info.active_track_count || 0;
+
+                        setCongestionColor(station.key + "_congestion", info.congestion || "不拥堵");
+
+                        const count = info.shared_bike_count || 0;
+                        if (count > maxCount) {
+                            maxCount = count;
+                            maxStation = station;
+                        }
+
+                        if (count < minCount) {
+                            minCount = count;
+                            minStation = station;
+                        }
+                    });
+
+                    const strategy = document.getElementById("strategyText");
+                    if (maxStation && minStation && maxCount - minCount >= 5) {
+                        strategy.innerText = `建议优先从 ${maxStation.name} 调出部分共享单车，补充至 ${minStation.name}；精确路线可使用下方调度模型求解。`;
+                    } else {
+                        strategy.innerText = "当前四个站点共享单车分布差异不大，可继续观察或直接使用调度模型计算最优路线。";
+                    }
+                });
+        }
+
+        function saveFlowRecord(callback = null) {
+            fetch("/save_campus_flow_record", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (callback) callback(data);
+            })
+            .catch(error => {
+                if (callback) {
+                    callback({ success: false, message: "请求失败，请检查后端服务。" });
+                }
+            });
+        }
+
+        function startFlowAutoSave() {
+            const status = document.getElementById("flowSaveStatus");
+
+            if (flowAutoSaveTimer !== null) {
+                status.innerText = "自动保存已经在运行中。";
+                status.style.color = "#60a5fa";
+                return;
+            }
+
+            flowAutoSaveCount = 0;
+
+            saveFlowRecord(function(data) {
+                if (data.success) {
+                    flowAutoSaveCount += 1;
+                    status.innerText = "自动保存中：已保存 " + flowAutoSaveCount + " 次，最近保存时间：" + data.record_time;
+                    status.style.color = "#22c55e";
+                } else {
+                    status.innerText = data.message;
+                    status.style.color = "#ef4444";
+                }
+            });
+
+            flowAutoSaveTimer = setInterval(function() {
+                saveFlowRecord(function(data) {
+                    if (data.success) {
+                        flowAutoSaveCount += 1;
+                        status.innerText = "自动保存中：已保存 " + flowAutoSaveCount + " 次，最近保存时间：" + data.record_time;
+                        status.style.color = "#22c55e";
+                    } else {
+                        status.innerText = data.message;
+                        status.style.color = "#ef4444";
+                    }
+                });
+            }, 15000);
+        }
+
+        function stopFlowAutoSave() {
+            const status = document.getElementById("flowSaveStatus");
+
+            if (flowAutoSaveTimer !== null) {
+                clearInterval(flowAutoSaveTimer);
+                flowAutoSaveTimer = null;
+                status.innerText = "自动保存已停止，共保存 " + flowAutoSaveCount + " 次。";
+                status.style.color = "#f59e0b";
+            } else {
+                status.innerText = "当前没有正在运行的自动保存任务。";
+                status.style.color = "#9ca3af";
+            }
+        }
+
+        function renderDispatchResult(result) {
+            const stationRows = stations.map(station => {
+                const source = result.source_rows[station.key] || {};
+                return `
+                    <tr>
+                        <td>${station.key}</td>
+                        <td>${station.name}</td>
+                        <td>${result.current_counts[station.key]}</td>
+                        <td>${result.demands[station.key]}</td>
+                        <td>${result.final_counts[station.key]}</td>
+                        <td>${source.record_time || "--"}</td>
+                    </tr>
+                `;
+            }).join("");
+
+            const stepRows = result.steps.map(step => `
+                <tr>
+                    <td>${step.step}</td>
+                    <td>${step.from} ${step.from_name}</td>
+                    <td>${step.to} ${step.to_name}</td>
+                    <td>${step.bikes === 0 ? "空驶" : step.bikes + " 辆"}</td>
+                    <td>${step.distance.toFixed(1)}</td>
+                    <td>${step.total_cost.toFixed(1)}</td>
+                </tr>
+            `).join("");
+
+            document.getElementById("modelResult").innerHTML = `
+                <div class="model-grid">
+                    <div>
+                        <div class="route-box">
+                            <div class="route-title">模型输入</div>
+                            <div>时间段：${result.time_period_name}</div>
+                            <div>当前总车数：${result.total_current}</div>
+                            <div>最低需求总数：${result.total_required}</div>
+                            <div>配送中心补车：${result.center_supply_allowed ? "允许" : "不需要"}</div>
+                            <div>求解器：${result.solver_backend || "--"}</div>
+                            <div>候选路线：${result.candidate_route_count} 条，可行路线：${result.feasible_route_count} 条</div>
+                            ${result.solver_warning ? `<div style="color:#f59e0b;margin-top:6px;">${result.solver_warning}</div>` : ""}
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>编号</th>
+                                    <th>站点</th>
+                                    <th>当前</th>
+                                    <th>需求</th>
+                                    <th>调度后</th>
+                                    <th>记录时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>${stationRows}</tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <div class="route-box">
+                            <div class="route-title">最优路线</div>
+                            <div>${result.route.map(node => `${node} ${result.node_names[node]}`).join(" → ")}</div>
+                            <div style="margin-top:8px;">总成本：${result.objective.toFixed(1)}，车辆行驶成本：${result.vehicle_cost.toFixed(1)}，单车搬运成本：${result.bike_cost.toFixed(1)}</div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>步骤</th>
+                                    <th>起点</th>
+                                    <th>终点</th>
+                                    <th>搬运</th>
+                                    <th>距离</th>
+                                    <th>成本</th>
+                                </tr>
+                            </thead>
+                            <tbody>${stepRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function solveDispatchModel() {
+            const message = document.getElementById("modelMessage");
+            message.innerText = "正在读取真实流动检测记录并求解调度模型...";
+            message.style.color = "#60a5fa";
+
+            fetch("/dispatch_model/solve", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    time_period: document.getElementById("timePeriod").value,
+                    max_legs: 6
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    message.innerText = data.message;
+                    message.style.color = "#ef4444";
+                    return;
+                }
+
+                message.innerText = data.message;
+                message.style.color = "#22c55e";
+                renderDispatchResult(data.result);
+            })
+            .catch(error => {
+                message.innerText = "求解请求失败，请检查后端服务。";
+                message.style.color = "#ef4444";
+            });
+        }
+
+        buildCameraCards();
+        loadModelOptions();
+        setInterval(updateCampusInfo, 1000);
+        updateCampusInfo();
+    </script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>数据管理</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+
+        .header {
+            height: 70px;
+            background: #111827;
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            font-size: 24px;
+            font-weight: bold;
+            border-bottom: 2px solid #2563eb;
+        }
+
+        .nav {
+            margin-left: auto;
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        a {
+            color: #93c5fd;
+            text-decoration: none;
+            margin-left: 16px;
+        }
+
+        .container {
+            padding: 24px;
+        }
+
+        .section {
+            background: #111827;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 28px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.35);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #60a5fa;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #111827;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #374151;
+            text-align: center;
+        }
+
+        th {
+            background: #1f2937;
+            color: #60a5fa;
+        }
+
+        tr:hover {
+            background: #1e293b;
+        }
+
+        .delete-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 7px 12px;
+            cursor: pointer;
+        }
+
+        .tag-normal {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .tag-warning {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .tag-danger {
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        .empty {
+            color: #9ca3af;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        数据管理页面
+
+        <div class="nav">
+            当前管理员：{{ username }}
+            <a href="/">任意地点监测</a>
+            <a href="/campus_flow">校园流动检测</a>
+            <a href="/logout">退出登录</a>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <div class="section">
+            <h2>任意地点检测记录</h2>
+
+            {% if location_records %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>场景</th>
+                        <th>共享单车数</th>
+                        <th>其他载具数</th>
+                        <th>载具总数</th>
+                        <th>拥挤程度</th>
+                        <th>记录时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for r in location_records %}
+                    <tr>
+                        <td>{{ r.id }}</td>
+                        <td>{{ r.scene }}</td>
+                        <td>{{ r.shared_bike_count }}</td>
+                        <td>{{ r.other_vehicle_count }}</td>
+                        <td>{{ r.total_vehicle_count }}</td>
+
+                        <td>
+                            {% if r.congestion == '严重拥堵' %}
+                                <span class="tag-danger">{{ r.congestion }}</span>
+                            {% elif r.congestion == '拥堵' %}
+                                <span class="tag-warning">{{ r.congestion }}</span>
+                            {% else %}
+                                <span class="tag-normal">{{ r.congestion }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td>{{ r.record_time }}</td>
+
+                        <td>
+                            <form method="post" action="/admin/delete_record/{{ r.id }}" onsubmit="return confirm('确定删除这条任意地点检测记录吗？');">
+                                <button class="delete-btn" type="submit">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <div class="empty">暂无任意地点检测记录</div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>校园流动检测记录</h2>
+
+            {% if flow_records %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>监测地点</th>
+                        <th>共享单车数</th>
+                        <th>其他载具数</th>
+                        <th>载具总数</th>
+                        <th>拥挤程度</th>
+                        <th>记录时间</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for r in flow_records %}
+                    <tr>
+                        <td>{{ r.id }}</td>
+                        <td>{{ r.location }}</td>
+                        <td>{{ r.shared_bike_count }}</td>
+                        <td>{{ r.other_vehicle_count }}</td>
+                        <td>{{ r.total_vehicle_count }}</td>
+
+                        <td>
+                            {% if r.congestion == '严重拥堵' %}
+                                <span class="tag-danger">{{ r.congestion }}</span>
+                            {% elif r.congestion == '拥堵' %}
+                                <span class="tag-warning">{{ r.congestion }}</span>
+                            {% else %}
+                                <span class="tag-normal">{{ r.congestion }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td>{{ r.record_time }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <div class="empty">暂无校园流动检测记录</div>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>
